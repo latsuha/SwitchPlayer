@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+Disallow: /private/
+Disallow: /tmp/
+Disallow: /admin/
+
+Sitemap: https://switchplayer.xyz/sitemap.xml
