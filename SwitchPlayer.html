@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Multi-Angle Video Player</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Arial', sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background-color: #000;
+      color: white;
+      overflow: hidden;
+      touch-action: none;
+    }
+    .start-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      width: 100vw;
+      position: relative;
+    }
+    /* Блок з іконками камери */
+.camera-icons {
+  position: absolute;
+  pointer-events: none;
+  width: 100%;
+  height: 100%;
+}
+
+.camera-icon {
+  font-size: 32px; /* Розмір іконки */
+  position: absolute;
+  top: 47%;
+  transform: translateY(-50%);
+}
+
+.camera-icon-left {
+  left: calc(50% - 150px);
+  
+  
+
+}
+
+.camera-icon-right {
+  left: calc(50% + 100px);
+  transform: scaleX(-1);
+  top: calc(50% - 50px);
+}
+
+    .add-btn {
+      background-color: #2196F3;
+      color: white;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 18px;
+      cursor: pointer;
+      border: none;
+      outline: none;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      transition: transform 0.2s, background-color 0.2s;
+      user-select: none;
+      z-index: 10;
+    }
+    .add-btn:active {
+      transform: scale(0.95);
+      background-color: #1976D2;
+    }
+    .player-container {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: #000;
+      z-index: 100;
+    }
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      /* Відключаємо стандартне контекстне меню */
+      -webkit-touch-callout: none;
+    }
+    .back-btn {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      background-color: rgba(0, 0, 0, 0.5);
+      color: white;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 200;
+      cursor: pointer;
+      user-select: none;
+    }
+    .file-name {
+      position: absolute;
+      bottom: 20px;
+      left: 0;
+      width: 100%;
+      text-align: center;
+      background-color: rgba(0, 0, 0, 0.5);
+      padding: 8px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 200;
+    }
+    .seek-bar-container {
+      position: absolute;
+      bottom: 60px;
+      left: 0;
+      width: 100%;
+      padding: 0 20px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 200;
+    }
+    .seek-bar {
+      width: 100%;
+      height: 8px;
+      background-color: rgba(255, 255, 255, 0.3);
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+    }
+    .seek-bar-progress {
+      height: 100%;
+      background-color: #2196F3;
+      width: 0;
+      border-radius: 4px;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+    .seek-bar-thumb {
+      width: 16px;
+      height: 16px;
+      background-color: #2196F3;
+      border-radius: 50%;
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      margin-left: -8px;
+      z-index: 10;
+      display: none;
+    }
+    /* Loop markers – bright green */
+    .loop-marker {
+      position: absolute;
+      top: -10px;
+      height: 28px;
+      width: 2px;
+      background-color: #00FF00;
+      z-index: 15;
+    }
+    .seek-bar:active .seek-bar-thumb {
+      display: block;
+    }
+    .seek-bar-time {
+      display: flex;
+      justify-content: space-between;
+      color: white;
+      margin-top: 5px;
+      font-size: 12px;
+    }
+    .volume-container {
+      display: flex;
+      align-items: center;
+      margin-top: 10px;
+      width: 100%;
+    }
+    .volume-icon {
+      margin-right: 10px;
+      width: 24px;
+      text-align: center;
+    }
+    .volume-slider {
+      flex-grow: 1;
+      height: 6px;
+      background-color: rgba(255, 255, 255, 0.3);
+      border-radius: 3px;
+      overflow: hidden;
+      position: relative;
+    }
+    .volume-progress {
+      height: 100%;
+      background-color: #2196F3;
+      width: 100%;
+      border-radius: 3px;
+    }
+    .file-input {
+      display: none;
+    }
+    .instruction {
+      margin-top: 20px;
+      text-align: center;
+      max-width: 80%;
+      opacity: 0.7;
+    }
+    .keyboard-shortcuts {
+      margin-top: 20px;
+      text-align: center;
+      max-width: 80%;
+      opacity: 0.7;
+    }
+    .drop-zone {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background-color: rgba(0, 0, 0, 0.8);
+      z-index: 50;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    .drop-zone.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+    .drop-zone-text {
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+    #fullscreenBtn {
+      position: absolute;
+      top: 30px;
+      right: 20px;
+      width: 30px;
+      height: 30px;
+      background: rgba(128, 128, 128, 0.5);
+      cursor: pointer;
+      z-index: 250;
+      border-radius: 4px;
+    }
+    #fullscreenBtn:hover {
+      background: rgba(128, 128, 128, 0.7);
+    }
+    .speed-indicator {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background-color: rgba(0, 0, 0, 0.5);
+      color: white;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 14px;
+      z-index: 200;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    /* Context menu styles */
+    #contextMenu {
+      position: absolute;
+      background: #ccc;
+      color: black;
+      padding: 8px;
+      border: 1px solid #888;
+      border-radius: 4px;
+      display: none;
+      z-index: 300;
+    }
+    #contextMenu ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    #contextMenu li {
+      margin: 4px 0;
+      cursor: pointer;
+    }
+    /* Delay input overlay */
+    #delayInputContainer {
+      display: none;
+      position: absolute;
+      background: #ccc;
+      color: black;
+      padding: 10px;
+      border: 1px solid #888;
+      border-radius: 4px;
+      z-index: 310;
+    }
+    /* На мобільних відкривається клавіатура з цифрами і знаком "-" */
+    #delayInput {
+      width: 80px;
+      inputmode: numeric;
+    }
+  </style>
+</head>
+<body>
+  <div class="start-screen" id="startScreen">
+    <!-- Камерні іконки -->
+<div class="camera-icons">
+  <div class="camera-icon camera-icon-left">🎥</div>
+  <div class="camera-icon camera-icon-right">🎥</div>
+</div>
+
+    <!-- Кнопка додавання відео -->
+    <button class="add-btn" id="addBtn">ADD videos</button>
+    <p class="instruction"></p>
+    <div class="keyboard-shortcuts">
+      Swipe ↑↓ Switch 
+    </div>
+    <div class="drop-zone" id="dropZone">
+      <div class="drop-zone-text">Drop video files here</div>
+      <div class="add-btn">DROP</div>
+    </div>
+  </div>
+  
+  <input type="file" id="fileInput" class="file-input" accept="video/*" multiple>
+  
+  <div class="player-container" id="playerContainer">
+    <div id="fullscreenBtn" title="Expand to Fullscreen"></div>
+    <div class="back-btn" id="backBtn">←</div>
+    <div class="speed-indicator" id="speedIndicator">1x</div>
+    <video id="videoPlayer" playsinline ></video>
+    <div class="file-name" id="fileName"></div>
+    <div class="seek-bar-container" id="seekBarContainer">
+      <div class="seek-bar" id="seekBar">
+        <div class="seek-bar-progress" id="seekBarProgress"></div>
+        <div class="seek-bar-thumb" id="seekBarThumb"></div>
+      </div>
+      <div class="seek-bar-time">
+        <span id="currentTime">00:00</span>
+        <span id="totalTime">00:00</span>
+      </div>
+      <div class="volume-container">
+        <div class="volume-icon" id="volumeIcon">🔊</div>
+        <div class="volume-slider" id="volumeSlider">
+          <div class="volume-progress" id="volumeProgress"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Context menu -->
+  <div id="contextMenu">
+    <ul>
+      <li>↑↓: Switch videos</li>
+      <li>←→: ±10 sec</li>
+      <li>L-Shift: 10x speed (hold)</li>
+      <li>R-Shift: Toggle 0.5x speed</li>
+      <li>[ / ]: Set/clear loop markers</li>
+      <li>Space: Play/Pause</li>
+      <li>+ / -: Volume</li>
+      <li id="setDelayItem">Set delay</li>
+    </ul>
+  </div>
+  
+  <!-- Delay input overlay -->
+  <div id="delayInputContainer">
+    <input type="number" id="delayInput" placeholder="Delay (sec)" maxlength="5" inputmode="numeric">
+    <button id="delayOkBtn">OK</button>
+  </div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const startScreen = document.getElementById('startScreen');
+      const playerContainer = document.getElementById('playerContainer');
+      const videoPlayer = document.getElementById('videoPlayer');
+	  videoPlayer.addEventListener('contextmenu', function(e) {
+  e.preventDefault();
+  contextMenu.style.left = e.clientX + 'px';
+  contextMenu.style.top = e.clientY + 'px';
+  contextMenu.style.display = 'block';
+});
+
+      const addBtn = document.getElementById('addBtn');
+      const fileInput = document.getElementById('fileInput');
+      const backBtn = document.getElementById('backBtn');
+      const fileNameDisplay = document.getElementById('fileName');
+      const seekBarContainer = document.getElementById('seekBarContainer');
+      const seekBar = document.getElementById('seekBar');
+      const seekBarProgress = document.getElementById('seekBarProgress');
+      const seekBarThumb = document.getElementById('seekBarThumb');
+      const currentTimeDisplay = document.getElementById('currentTime');
+      const totalTimeDisplay = document.getElementById('totalTime');
+      const dropZone = document.getElementById('dropZone');
+      const volumeSlider = document.getElementById('volumeSlider');
+      const volumeProgress = document.getElementById('volumeProgress');
+      const volumeIcon = document.getElementById('volumeIcon');
+      const speedIndicator = document.getElementById('speedIndicator');
+      const fullscreenBtn = document.getElementById('fullscreenBtn');
+      const contextMenu = document.getElementById('contextMenu');
+      const setDelayItem = document.getElementById('setDelayItem');
+      const delayInputContainer = document.getElementById('delayInputContainer');
+      const delayInput = document.getElementById('delayInput');
+      const delayOkBtn = document.getElementById('delayOkBtn');
+      
+      let videos = [];
+      let currentVideoIndex = 0;
+      let timePosition = 0;
+      let seekBarTimeout;
+      let isSeeking = false;
+      let seekPercentage = 0;
+      let normalSpeed = 1;
+      
+      // Default volume 20%
+      let defaultVolume = 0.2;
+      let currentVolume = defaultVolume;
+      
+      // Loop markers (persist between videos)
+      let loopStart = null;
+      let loopEnd = null;
+      let loopStartMarker = null;
+      let loopEndMarker = null;
+      
+      // Array of delays for each video (in seconds)
+      let delays = [];
+      
+      function formatTime(seconds) {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = Math.floor(seconds % 60);
+        return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+      }
+      
+      function updateSeekBar() {
+        if (videoPlayer.duration && !isSeeking) {
+          const progress = (videoPlayer.currentTime / videoPlayer.duration) * 100;
+          seekBarProgress.style.width = `${progress}%`;
+          seekBarThumb.style.left = `${progress}%`;
+          currentTimeDisplay.textContent = formatTime(videoPlayer.currentTime);
+          totalTimeDisplay.textContent = formatTime(videoPlayer.duration);
+          
+          if (loopStart !== null && loopEnd !== null) {
+            if (videoPlayer.currentTime >= loopEnd) {
+              videoPlayer.currentTime = loopStart;
+            }
+          }
+        }
+      }
+      
+      function showUI() {
+        seekBarContainer.style.opacity = '0.5';
+        fileNameDisplay.style.opacity = '1';
+        clearTimeout(seekBarTimeout);
+        seekBarTimeout = setTimeout(() => {
+          seekBarContainer.style.opacity = '0';
+          fileNameDisplay.style.opacity = '0';
+        }, 7000);
+      }
+      
+      function showSpeedIndicator() {
+        speedIndicator.textContent = `${videoPlayer.playbackRate}x`;
+        speedIndicator.style.opacity = '1';
+        setTimeout(() => {
+          speedIndicator.style.opacity = '0';
+        }, 2000);
+      }
+      
+      // Fullscreen toggle
+      fullscreenBtn.addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+          playerContainer.requestFullscreen().catch(err => console.error(err));
+        } else {
+          document.exitFullscreen();
+        }
+      });
+      
+      function enterFullscreen() {
+        if (document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen();
+        } else if (document.documentElement.mozRequestFullScreen) {
+          document.documentElement.mozRequestFullScreen();
+        } else if (document.documentElement.webkitRequestFullscreen) {
+          document.documentElement.webkitRequestFullscreen();
+        } else if (document.documentElement.msRequestFullscreen) {
+          document.documentElement.msRequestFullscreen();
+        }
+      }
+      
+      function loadFiles(files) {
+        if (files.length > 0) {
+          videos = Array.from(files);
+          // Initialize delay for each video
+          delays = new Array(videos.length).fill(0);
+          
+          startScreen.style.display = 'none';
+          playerContainer.style.display = 'block';
+          loadVideo(0);
+          videoPlayer.play();
+          showUI();
+          setTimeout(enterFullscreen, 100);
+        }
+      }
+      
+      function setVolume(volume) {
+        volume = Math.max(0, Math.min(1, volume));
+        currentVolume = volume;
+        videoPlayer.volume = volume;
+        volumeProgress.style.width = `${volume * 100}%`;
+        if (volume === 0) {
+          volumeIcon.textContent = '🔇';
+        } else if (volume < 0.5) {
+          volumeIcon.textContent = '🔉';
+        } else {
+          volumeIcon.textContent = '🔊';
+        }
+      }
+      
+      // Toggle loop marker
+      function setLoopMarker(type) {
+        if (type === 'start') {
+          if (loopStart !== null) {
+            loopStart = null;
+            if (loopStartMarker) {
+              loopStartMarker.remove();
+              loopStartMarker = null;
+            }
+          } else {
+            loopStart = videoPlayer.currentTime;
+            if (loopStartMarker) loopStartMarker.remove();
+            loopStartMarker = document.createElement('div');
+            loopStartMarker.className = 'loop-marker';
+            const position = (loopStart / videoPlayer.duration) * 100;
+            loopStartMarker.style.left = `${position}%`;
+            seekBar.appendChild(loopStartMarker);
+          }
+          showUI();
+        } else if (type === 'end') {
+          if (loopEnd !== null) {
+            loopEnd = null;
+            if (loopEndMarker) {
+              loopEndMarker.remove();
+              loopEndMarker = null;
+            }
+          } else {
+            loopEnd = videoPlayer.currentTime;
+            if (loopEndMarker) loopEndMarker.remove();
+            loopEndMarker = document.createElement('div');
+            loopEndMarker.className = 'loop-marker';
+            const position = (loopEnd / videoPlayer.duration) * 100;
+            loopEndMarker.style.left = `${position}%`;
+            seekBar.appendChild(loopEndMarker);
+          }
+          showUI();
+        }
+      }
+      
+      function clearLoopMarkers() {
+        loopStart = null;
+        loopEnd = null;
+        if (loopStartMarker) {
+          loopStartMarker.remove();
+          loopStartMarker = null;
+        }
+        if (loopEndMarker) {
+          loopEndMarker.remove();
+          loopEndMarker = null;
+        }
+        showUI();
+      }
+      
+      addBtn.addEventListener('click', () => {
+        fileInput.click();
+      });
+      
+      fileInput.addEventListener('change', (e) => {
+        loadFiles(e.target.files);
+      });
+      
+      backBtn.addEventListener('click', () => {
+        videoPlayer.pause();
+        playerContainer.style.display = 'none';
+        startScreen.style.display = 'flex';
+        videos = [];
+        currentVideoIndex = 0;
+        timePosition = 0;
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        } else if (document.mozCancelFullScreen) {
+          document.mozCancelFullScreen();
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) {
+          document.msExitFullscreen();
+        }
+      });
+      
+      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        startScreen.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }, false);
+      });
+      
+      ['dragenter', 'dragover'].forEach(eventName => {
+        startScreen.addEventListener(eventName, () => {
+          dropZone.classList.add('active');
+        }, false);
+      });
+      
+      ['dragleave', 'drop'].forEach(eventName => {
+        startScreen.addEventListener(eventName, () => {
+          dropZone.classList.remove('active');
+        }, false);
+      });
+      
+      startScreen.addEventListener('drop', (e) => {
+        const files = e.dataTransfer.files;
+        loadFiles(files);
+      }, false);
+      
+      seekBar.addEventListener('click', (e) => {
+        const rect = seekBar.getBoundingClientRect();
+        const pos = (e.clientX - rect.left) / rect.width;
+        videoPlayer.currentTime = pos * videoPlayer.duration;
+        updateSeekBar();
+        showUI();
+      });
+      
+      seekBar.addEventListener('mousedown', (e) => {
+        isSeeking = true;
+        seekBarThumb.style.display = 'block';
+        updateSeekPosition(e);
+        document.addEventListener('mousemove', updateSeekPosition);
+        document.addEventListener('mouseup', stopSeeking);
+      });
+      
+      seekBar.addEventListener('touchstart', (e) => {
+        isSeeking = true;
+        seekBarThumb.style.display = 'block';
+        updateSeekPositionTouch(e);
+        document.addEventListener('touchmove', updateSeekPositionTouch);
+        document.addEventListener('touchend', stopSeekingTouch);
+      });
+      
+      volumeSlider.addEventListener('click', (e) => {
+        const rect = volumeSlider.getBoundingClientRect();
+        const pos = (e.clientX - rect.left) / rect.width;
+        setVolume(pos);
+        showUI();
+      });
+      
+      volumeSlider.addEventListener('mousedown', (e) => {
+        updateVolumePosition(e);
+        document.addEventListener('mousemove', updateVolumePosition);
+        document.addEventListener('mouseup', stopVolumeAdjusting);
+      });
+      
+      volumeSlider.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        updateVolumePositionTouch(e);
+        document.addEventListener('touchmove', updateVolumePositionTouch);
+        document.addEventListener('touchend', stopVolumeAdjustingTouch);
+      });
+      
+      function updateVolumePosition(e) {
+        const rect = volumeSlider.getBoundingClientRect();
+        let pos = (e.clientX - rect.left) / rect.width;
+        pos = Math.max(0, Math.min(1, pos));
+        setVolume(pos);
+      }
+      
+      function updateVolumePositionTouch(e) {
+        e.preventDefault();
+        const rect = volumeSlider.getBoundingClientRect();
+        let pos = (e.touches[0].clientX - rect.left) / rect.width;
+        pos = Math.max(0, Math.min(1, pos));
+        setVolume(pos);
+      }
+      
+      function stopVolumeAdjusting() {
+        document.removeEventListener('mousemove', updateVolumePosition);
+        document.removeEventListener('mouseup', stopVolumeAdjusting);
+      }
+      
+      function stopVolumeAdjustingTouch() {
+        document.removeEventListener('touchmove', updateVolumePositionTouch);
+        document.removeEventListener('touchend', stopVolumeAdjustingTouch);
+      }
+      
+      function updateSeekPosition(e) {
+        const rect = seekBar.getBoundingClientRect();
+        let pos = (e.clientX - rect.left) / rect.width;
+        pos = Math.max(0, Math.min(1, pos));
+        seekPercentage = pos * 100;
+        seekBarProgress.style.width = `${seekPercentage}%`;
+        seekBarThumb.style.left = `${seekPercentage}%`;
+        const newTime = pos * videoPlayer.duration;
+        currentTimeDisplay.textContent = formatTime(newTime);
+      }
+      
+      function updateSeekPositionTouch(e) {
+        e.preventDefault();
+        const rect = seekBar.getBoundingClientRect();
+        let pos = (e.touches[0].clientX - rect.left) / rect.width;
+        pos = Math.max(0, Math.min(1, pos));
+        seekPercentage = pos * 100;
+        seekBarProgress.style.width = `${seekPercentage}%`;
+        seekBarThumb.style.left = `${seekPercentage}%`;
+        const newTime = pos * videoPlayer.duration;
+        currentTimeDisplay.textContent = formatTime(newTime);
+      }
+      
+      function stopSeeking() {
+        if (isSeeking) {
+          videoPlayer.currentTime = (seekPercentage / 100) * videoPlayer.duration;
+          isSeeking = false;
+          seekBarThumb.style.display = '';
+          document.removeEventListener('mousemove', updateSeekPosition);
+          document.removeEventListener('mouseup', stopSeeking);
+        }
+      }
+      
+      function stopSeekingTouch() {
+        if (isSeeking) {
+          videoPlayer.currentTime = (seekPercentage / 100) * videoPlayer.duration;
+          isSeeking = false;
+          seekBarThumb.style.display = '';
+          document.removeEventListener('touchmove', updateSeekPositionTouch);
+          document.removeEventListener('touchend', stopSeekingTouch);
+        }
+      }
+      
+      videoPlayer.addEventListener('timeupdate', updateSeekBar);
+      
+      videoPlayer.addEventListener('loadedmetadata', () => {
+        setVolume(currentVolume);
+      });
+      
+      // Load video with delay compensation
+      function loadVideo(index) {
+        currentVideoIndex = index;
+        const videoFile = videos[index];
+        const videoURL = URL.createObjectURL(videoFile);
+        const wasPlaying = !videoPlayer.paused;
+        let currentDelay = delays[index] || 0;
+        videoPlayer.src = videoURL;
+        videoPlayer.currentTime = timePosition + currentDelay;
+        if (currentDelay !== 0) {
+          let sign = currentDelay > 0 ? '+' : '';
+          fileNameDisplay.textContent = `[${sign}${currentDelay}] ` + videoFile.name;
+        } else {
+          fileNameDisplay.textContent = videoFile.name;
+        }
+        showUI();
+        setVolume(currentVolume);
+        if (wasPlaying) {
+          videoPlayer.play();
+        }
+      }
+      
+      // Switch video with delay compensation
+      function switchVideo(direction) {
+  // Обчислюємо абсолютний час без затримки поточного відео
+  let oldDelay = delays[currentVideoIndex] || 0;
+  timePosition = videoPlayer.currentTime - oldDelay;
+  
+  // Визначаємо індекс нового відео
+  let newIndex;
+  if (direction === 'next') {
+    newIndex = (currentVideoIndex + 1) % videos.length;
+  } else {
+    newIndex = (currentVideoIndex - 1 + videos.length) % videos.length;
+  }
+  
+  // Завантажуємо нове відео — функція loadVideo додасть його затримку автоматично
+  loadVideo(newIndex);
+}
+      
+      videoPlayer.addEventListener('touchstart', (e) => {
+        touchStartY = e.touches[0].clientY;
+      });
+      
+      videoPlayer.addEventListener('touchend', (e) => {
+        const touchEndY = e.changedTouches[0].clientY;
+        const deltaY = touchEndY - touchStartY;
+        if (videos.length > 1) {
+          if (deltaY > 50) {
+            switchVideo('next');
+          } else if (deltaY < -50) {
+            switchVideo('previous');
+          }
+        }
+      });
+      
+      videoPlayer.addEventListener('click', (e) => {
+        e.preventDefault();
+        const rect = videoPlayer.getBoundingClientRect();
+        const clickY = e.clientY - rect.top;
+        if (clickY > rect.height * 0.8) {
+          showUI();
+        } else {
+          if (videoPlayer.paused) {
+            videoPlayer.play();
+          } else {
+            videoPlayer.pause();
+          }
+        }
+      });
+      
+      // Keyboard events
+      let leftShiftPressed = false;
+      
+      document.addEventListener('keydown', (e) => {
+        if (playerContainer.style.display === 'block') {
+          if (e.code === 'Space') {
+            e.preventDefault();
+            if (videoPlayer.paused) {
+              videoPlayer.play();
+            } else {
+              videoPlayer.pause();
+            }
+            showUI();
+          } else if (e.code === 'ShiftLeft' && !e.repeat) {
+            leftShiftPressed = true;
+            videoPlayer.playbackRate = 10;
+            showSpeedIndicator();
+          } else if (e.code === 'ShiftRight' && !e.repeat) {
+            if (videoPlayer.playbackRate === 0.5) {
+              videoPlayer.playbackRate = normalSpeed;
+            } else {
+              videoPlayer.playbackRate = 0.5;
+            }
+            showSpeedIndicator();
+          } else {
+            switch (e.key) {
+              case 'ArrowUp':
+                switchVideo('previous');
+                break;
+              case 'ArrowDown':
+                switchVideo('next');
+                break;
+              case 'ArrowRight':
+                videoPlayer.currentTime += 10;
+                showUI();
+                break;
+              case 'ArrowLeft':
+                videoPlayer.currentTime -= 10;
+                showUI();
+                break;
+              case '+':
+              case '=':
+                setVolume(videoPlayer.volume + 0.1);
+                showUI();
+                break;
+              case '-':
+                setVolume(videoPlayer.volume - 0.1);
+                showUI();
+                break;
+              case '[':
+                setLoopMarker('start');
+                break;
+              case ']':
+                setLoopMarker('end');
+                break;
+              case 'Escape':
+                clearLoopMarkers();
+                break;
+            }
+          }
+        }
+      });
+      
+      document.addEventListener('keyup', (e) => {
+        if (e.code === 'ShiftLeft') {
+          if (leftShiftPressed) {
+            leftShiftPressed = false;
+            videoPlayer.playbackRate = normalSpeed;
+            showSpeedIndicator();
+          }
+        }
+      });
+      
+      // Document click handler: приховуємо контекстне меню та delay input,
+      // тільки якщо клік відбувається поза їх межами
+      document.addEventListener('click', (e) => {
+        if (!contextMenu.contains(e.target) && !delayInputContainer.contains(e.target)) {
+          contextMenu.style.display = 'none';
+          delayInputContainer.style.display = 'none';
+        }
+      });
+      
+      // Handle "Set delay" click from context menu
+      setDelayItem.addEventListener('click', (e) => {
+        e.stopPropagation();
+        delayInputContainer.style.left = e.clientX + 'px';
+        delayInputContainer.style.top = e.clientY + 'px';
+        delayInputContainer.style.display = 'block';
+        // Викликаємо focus через невелике затримання для коректної роботи
+        setTimeout(() => { delayInput.focus(); }, 100);
+      });
+      
+      // OK button for delay input
+      delayOkBtn.addEventListener('click', () => {
+        let delayValue = parseInt(delayInput.value);
+        if (isNaN(delayValue)) delayValue = 0;
+        delays[currentVideoIndex] = delayValue;
+        let currentFileName = videos[currentVideoIndex].name;
+        if (delayValue !== 0) {
+          let sign = delayValue > 0 ? '+' : '';
+          currentFileName = `[${sign}${delayValue}] ` + currentFileName;
+        }
+        fileNameDisplay.textContent = currentFileName;
+        delayInput.value = '';
+        delayInputContainer.style.display = 'none';
+      });
+      
+      // Mobile: show delay input on long press (3 sec)
+      let touchTimer;
+      videoPlayer.addEventListener('touchstart', (e) => {
+        touchTimer = setTimeout(() => {
+          delayInputContainer.style.left = (window.innerWidth / 2 - 50) + 'px';
+          delayInputContainer.style.top = (window.innerHeight / 2 - 20) + 'px';
+          delayInputContainer.style.display = 'block';
+          setTimeout(() => { delayInput.focus(); }, 100);
+        }, 3000);
+      });
+      videoPlayer.addEventListener('touchend', (e) => {
+        clearTimeout(touchTimer);
+      });
+      
+      setVolume(currentVolume);
+    });
+  </script>
+</body>
+</html>
