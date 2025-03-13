@@ -26,4 +26,5 @@ jobs:
           git config --global user.email "actions@github.com"
           git add sitemap.xml
           git commit -m "Auto-generate sitemap"
-          git push
+          git push "https://x-access-token:${{ zelya-pidr.shmoken }}@github.com/latsuha/SwitchPlayer.git" HEAD:main
+
