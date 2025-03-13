@@ -28,6 +28,7 @@ jobs:
           git commit -m "Auto-generate sitemap" || echo "No changes to commit"
           git push
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          git push "https://x-access-token:${{ secrets.PAT }}@github.com/latsuha/SwitchPlayer.git" HEAD:main
+
 
 
